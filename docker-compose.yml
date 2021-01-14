@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+    # Router
+    router:
+        build:
+            context: .
+            dockerfile: Dockerfile-router
+        container_name: benjol-router
+        restart: unless-stopped
+        tty: true
+        volumes:
+            - certbot-etc:/etc/letsencrypt
+            - certbot-var:/var/lib/letsencrypt
+        ports:
+            - "80:80"
+            - "443:443"
+        networks:
+            - benjol-network
+    
+    # Backend Services
+    backend-app:
+        build:
+            context: .
+            dockerfile: Dockerfile-backend
+        container_name: benjol-backend
+        restart: unless-stopped
+        tty: true
+        volumes:
+            - ./upload:/www/public/upload
+        networks:
+            - benjol-network
+             
+    # Web Service	
+    web-app:
+        build:
+            context: .
+            dockerfile: Dockerfile-web
+        container_name: benjol-web
+        restart: unless-stopped
+        tty: true
+        networks: 
+            - benjol-network
+    
+    # Database Service
+    mariadb:
+        image: mariadb:latest
+        container_name: benjol-database-mariadb
+        restart: unless-stopped
+        tty: true
+        ports: 
+            - "3306:3306"
+        environment: 
+            MYSQL_DATABASE: benjol
+            MYSQL_USER: benjol
+            MYSQL_PASSWORD: benjol
+            MYSQL_ROOT_PASSWORD: root
+            SERVICE_TAGS: dev
+            SERVICE_NAME: mariadb
+        volumes:
+            - benjol-data:/var/lib/mysql
+            - ./mysql/my.cnf:/etc/mysql/my.cnf
+        networks: 
+            - benjol-network
+
+# Cerbot SSL Certificates
+#    certbot:
+#        image: certbot/certbot
+#        container_name: certbot
+#        volumes:
+#            - certbot-etc:/etc/letsencrypt
+#            - certbot-var:/var/lib/letsencrypt
+#        command: certonly --email abdulsalamsabil@gmail.com --agree-tos --no-eff-email --staging -d benjol.bike -d www.benjol.bike -d api.benjol.bike
+
+# Docker Networks
+networks:
+        benjol-network:
+            driver: bridge
+
+# Volumes
+volumes:
+        certbot-etc:
+        certbot-var:
+        benjol-data:
+            driver: local
